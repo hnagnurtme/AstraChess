@@ -1,6 +1,6 @@
-# Chess Bot API
+# AstraChess API
 
-A chess engine application with three different bot difficulty levels and a React-based frontend interface.
+An advanced chess engine application with three different AI difficulty levels, a React + TypeScript frontend interface, and premium neo-brutalist styling.
 
 ## Project Structure
 
