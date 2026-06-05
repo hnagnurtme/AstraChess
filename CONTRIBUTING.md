@@ -1,4 +1,4 @@
-# Contributing to Chess Bot API
+# Contributing to AstraChess
 
 Thank you for considering contributing to this project. This document outlines the process and guidelines for contributing.
 

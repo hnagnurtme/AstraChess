@@ -6,11 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import router
+from core.db import init_db
 
 app = FastAPI(
-    title="Chess Bot API",
+    title="AstraChess API",
     description=(
-        "API cho chess bot với 3 engine:\n"
+        "API cho AstraChess với 3 engine:\n"
         "- **v1**: Alpha-Beta đơn giản\n"
         "- **v2**: Iterative Deepening + TT + LMR\n"
         "- **vip**: Engine mạnh nhất (SEE, Aspiration Window, Pawn Hash)"
@@ -36,3 +37,9 @@ app.include_router(router, prefix="/api")
 @app.get("/health", tags=["System"], summary="Health check")
 def health():
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
+

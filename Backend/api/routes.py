@@ -1,5 +1,5 @@
 """
-API Routes — Tất cả các endpoint của Chess Bot API.
+API Routes — Tất cả các endpoint của AstraChess API.
 """
 
 import time
@@ -12,7 +12,14 @@ from models.schemas import (
     MoveResponse,
     EngineInfo,
     EnginesResponse,
+    UserRegister,
+    UserLogin,
+    UserResponse,
+    MatchCreate,
+    MatchListItem,
+    LeaderboardEntry,
 )
+from core import db
 from engines.bot_v1 import BotV1
 from engines.bot_v2 import BotV2
 from engines.bot_vip import BotVIP
@@ -126,3 +133,145 @@ def get_move(req: MoveRequest) -> ApiResponse[MoveResponse]:
             elapsed_ms=elapsed_ms,
         ),
     )
+
+
+# ─────────────────────────────────────────────────────────
+# Auth Endpoints
+# ─────────────────────────────────────────────────────────
+@router.post(
+    "/auth/register",
+    response_model=ApiResponse[UserResponse],
+    summary="Đăng ký tài khoản mới",
+    tags=["Auth"],
+)
+def register(req: UserRegister) -> ApiResponse[UserResponse]:
+    existing = db.get_user_by_username(req.username)
+    if existing:
+        raise HTTPException(status_code=400, detail="Tên tài khoản đã tồn tại.")
+    
+    try:
+        user = db.create_user(req.username, req.password, req.fullname, req.avatar)
+        return ApiResponse(
+            success=True,
+            message="Đăng ký tài khoản thành công.",
+            data=UserResponse(**user)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi đăng ký: {e}")
+
+
+@router.post(
+    "/auth/login",
+    response_model=ApiResponse[UserResponse],
+    summary="Đăng nhập tài khoản",
+    tags=["Auth"],
+)
+def login(req: UserLogin) -> ApiResponse[UserResponse]:
+    user = db.get_user_by_username(req.username)
+    if not user or user["password"] != req.password:
+        raise HTTPException(status_code=400, detail="Tài khoản hoặc mật khẩu không đúng.")
+    
+    return ApiResponse(
+        success=True,
+        message="Đăng nhập thành công.",
+        data=UserResponse(**user)
+    )
+
+
+# ─────────────────────────────────────────────────────────
+# Leaderboard Endpoint
+# ─────────────────────────────────────────────────────────
+@router.get(
+    "/leaderboard",
+    response_model=ApiResponse[list[LeaderboardEntry]],
+    summary="Lấy bảng xếp hạng hệ thống",
+    tags=["Stats"],
+)
+def get_leaderboard_route() -> ApiResponse[list[LeaderboardEntry]]:
+    try:
+        entries = db.get_leaderboard()
+        return ApiResponse(
+            success=True,
+            message="Lấy bảng xếp hạng thành công.",
+            data=[LeaderboardEntry(**entry) for entry in entries]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy bảng xếp hạng: {e}")
+
+
+# ─────────────────────────────────────────────────────────
+# History / Match Logging Endpoints
+# ─────────────────────────────────────────────────────────
+@router.post(
+    "/history",
+    response_model=ApiResponse[None],
+    summary="Lưu lịch sử ván cờ",
+    tags=["Chess"],
+)
+def save_match_history(req: MatchCreate) -> ApiResponse[None]:
+    user = db.get_user_by_username(req.username)
+    if not user:
+        raise HTTPException(status_code=400, detail="Tài khoản không tồn tại trên hệ thống.")
+    
+    try:
+        db.create_match(
+            match_id=req.id,
+            username=req.username,
+            date=req.date,
+            difficulty=req.difficulty,
+            player_color=req.playerColor,
+            result=req.result,
+            moves_count=req.movesCount
+        )
+        return ApiResponse(
+            success=True,
+            message="Đã lưu lịch sử ván cờ thành công.",
+            data=None
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lưu lịch sử: {e}")
+
+
+@router.get(
+    "/history/{username}",
+    response_model=ApiResponse[list[MatchListItem]],
+    summary="Lấy lịch sử ván cờ của người chơi",
+    tags=["Chess"],
+)
+def get_history(username: str) -> ApiResponse[list[MatchListItem]]:
+    user = db.get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=400, detail="Tài khoản không tồn tại.")
+        
+    try:
+        matches = db.get_user_history(username)
+        return ApiResponse(
+            success=True,
+            message="Lấy lịch sử ván cờ thành công.",
+            data=[MatchListItem(**m) for m in matches]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy lịch sử ván cờ: {e}")
+
+
+@router.delete(
+    "/history/{username}",
+    response_model=ApiResponse[None],
+    summary="Xóa toàn bộ lịch sử ván cờ của người chơi",
+    tags=["Chess"],
+)
+def clear_history(username: str) -> ApiResponse[None]:
+    user = db.get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=400, detail="Tài khoản không tồn tại.")
+        
+    try:
+        db.clear_user_history(username)
+        return ApiResponse(
+            success=True,
+            message="Đã xóa toàn bộ lịch sử và đặt lại điểm số.",
+            data=None
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xóa lịch sử ván cờ: {e}")
+

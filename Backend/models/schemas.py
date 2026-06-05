@@ -57,3 +57,57 @@ class EngineInfo(BaseModel):
 
 class EnginesResponse(BaseModel):
     engines: list[EngineInfo]
+
+
+# ── Auth & Users ─────────────────────────────────────────
+class UserRegister(BaseModel):
+    username: str
+    password: str
+    fullname: str
+    avatar: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    username: str
+    fullname: str
+    avatar: str
+    wins: int
+    losses: int
+    draws: int
+
+
+# ── Matches & History ────────────────────────────────────
+class MatchCreate(BaseModel):
+    id: str
+    username: str
+    date: str
+    difficulty: str
+    playerColor: str
+    result: str
+    movesCount: int
+
+
+class MatchListItem(BaseModel):
+    id: str
+    date: str
+    difficulty: str
+    playerColor: str
+    result: str
+    movesCount: int
+
+
+# ── Leaderboard ──────────────────────────────────────────
+class LeaderboardEntry(BaseModel):
+    username: str
+    fullname: str
+    avatar: str
+    wins: int
+    losses: int
+    draws: int
+    score: int
+
