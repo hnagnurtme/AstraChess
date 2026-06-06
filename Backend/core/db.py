@@ -1,9 +1,12 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from core.config import settings
 
-DATABASE_URL = "postgresql://neondb_owner:npg_3VCn8NaOmilG@ep-royal-king-ap3e3gr4-pooler.c-7.us-east-1.aws.neon.tech/astrachess?sslmode=require&channel_binding=require"
+DATABASE_URL = settings.database_url
 
 def get_connection():
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL is not set. Please set it in your environment or .env file.")
     return psycopg2.connect(DATABASE_URL)
 
 def init_db():

@@ -42,3 +42,7 @@ docker-compose.yml
 # Documentation
 *.md
 README.md
+
+# Environment files
+.env
+.env.*
