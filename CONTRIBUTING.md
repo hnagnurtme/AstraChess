@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 Run tests:
 ```bash
-pytest
+python -m unittest discover -s tests
 ```
 
 ### Frontend
@@ -85,7 +85,7 @@ npm run lint
 
 ```bash
 cd Backend
-pytest tests/
+python -m unittest discover -s tests
 ```
 
 ### Frontend Tests
