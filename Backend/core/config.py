@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # Độ sâu tìm kiếm mặc định
     default_depth: int = 4
 
+    # URL kết nối Database
+    database_url: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
