@@ -16,6 +16,53 @@ A **premium, high-performance Chess application** allowing players to play again
 
 ## 🏛️ System Architecture
 
+### High-Level System Architecture
+```mermaid
+%%{init: {
+  'theme': 'neutral',
+  'themeVariables': {
+    'fontFamily': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif',
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f4f4f5',
+    'tertiaryColor': '#ffffff'
+  }
+}}%%
+graph TD
+    subgraph Public Edge Proxy
+        CF[Cloudflare DNS / CDN]
+        TF[Traefik Ingress Proxy]
+    end
+
+    subgraph Application Services
+        FE[React Frontend - Nginx Container]
+        BE[FastAPI Backend - Uvicorn Container]
+    end
+
+    subgraph AI Engine Modules
+        V1[Bot V1: Alpha-Beta]
+        V2[Bot V2: ID + TT + LMR]
+        VIP[Bot VIP: SEE + Pawn Hash]
+    end
+
+    subgraph Database Layer
+        DB[(PostgreSQL - Neon DB)]
+    end
+
+    %% Connections
+    CF -->|HTTPS Traffic| TF
+    TF -->|Routes /| FE
+    TF -->|Routes /api| BE
+    
+    BE -->|Calculates Move| V1
+    BE -->|Calculates Move| V2
+    BE -->|Calculates Move| VIP
+    
+    BE -->|Query / Save Data| DB
+```
+
 ### Move Calculation Sequence Flow
 ```mermaid
 %%{init: {
@@ -53,25 +100,25 @@ sequenceDiagram
 
 ## 🖥️ Screen Previews
 
-### 1. Match Playroom
-<p align="center">
-  <img src="docs/playroom.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AstraChess Playroom"/>
-  <br/>
-  <em>Interactive gameplay room against AI with move history and dynamic stats.</em>
-</p>
-
-### 2. Homepage & Difficulty Selection
+### 1. Homepage & Difficulty Selection
 <p align="center">
   <img src="docs/homepage.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AstraChess Homepage"/>
   <br/>
   <em>Aesthetic neo-brutalist landing page with quick match settings.</em>
 </p>
 
-### 3. AI Engine Levels
+### 2. AI Engine Levels
 <p align="center">
   <img src="docs/3engine.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AI Engines"/>
   <br/>
   <em>Three custom AI engine difficulty levels: V1 (Alpha-Beta), V2 (ID + TT), and VIP (Advanced).</em>
+</p>
+
+### 3. Match Playroom
+<p align="center">
+  <img src="docs/playroom.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AstraChess Playroom"/>
+  <br/>
+  <em>Interactive gameplay room against AI with move history and dynamic stats.</em>
 </p>
 
 ---
