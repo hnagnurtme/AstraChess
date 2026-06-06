@@ -10,58 +10,18 @@
 
 # AstraChess
 
-A **premium, high-performance Chess application** allowing players to play against three levels of custom-built AI chess engines. It features an aesthetic **neo-brutalism design** frontend built using React and TypeScript, and an asynchronous, lightweight FastAPI backend.
+A **premium, high-performance Chess application** built around **custom chess engines** optimizing game tree search via state-of-the-art AI algorithms: **Alpha-Beta Pruning**, **Iterative Deepening with Transposition Tables (Zobrist Hashing)**, **Static Exchange Evaluation (SEE)**, **Late Move Reduction (LMR)**, **Aspiration Windows**, and **Pawn Hash Tables**. It features an aesthetic **neo-brutalism design** frontend built using React and TypeScript, and an asynchronous, lightweight FastAPI backend.
 
 ---
 
 ## 🏛️ System Architecture
 
 ### High-Level System Architecture
-```mermaid
-%%{init: {
-  'theme': 'neutral',
-  'themeVariables': {
-    'fontFamily': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif',
-    'primaryColor': '#ffffff',
-    'primaryTextColor': '#000000',
-    'primaryBorderColor': '#000000',
-    'lineColor': '#000000',
-    'secondaryColor': '#f4f4f5',
-    'tertiaryColor': '#ffffff'
-  }
-}}%%
-graph TD
-    subgraph Public Edge Proxy
-        CF[Cloudflare DNS / CDN]
-        TF[Traefik Ingress Proxy]
-    end
-
-    subgraph Application Services
-        FE[React Frontend - Nginx Container]
-        BE[FastAPI Backend - Uvicorn Container]
-    end
-
-    subgraph AI Engine Modules
-        V1[Bot V1: Alpha-Beta]
-        V2[Bot V2: ID + TT + LMR]
-        VIP[Bot VIP: SEE + Pawn Hash]
-    end
-
-    subgraph Database Layer
-        DB[(PostgreSQL - Neon DB)]
-    end
-
-    %% Connections
-    CF -->|HTTPS Traffic| TF
-    TF -->|Routes /| FE
-    TF -->|Routes /api| BE
-    
-    BE -->|Calculates Move| V1
-    BE -->|Calculates Move| V2
-    BE -->|Calculates Move| VIP
-    
-    BE -->|Query / Save Data| DB
-```
+<p align="center">
+  <img src="docs/architecture.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="System Architecture Topology"/>
+  <br/>
+  <em>Complete system architecture topology mapping Cloudflare, Traefik, application containers, custom AI engines, and the database.</em>
+</p>
 
 ### Move Calculation Sequence Flow
 ```mermaid
