@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Deploy to GCP
+name: CI/CD Pipeline - Test & Deploy to GHCR
 
 on:
   push:
@@ -7,30 +7,89 @@ on:
       - prod
   workflow_dispatch:
 
-env:
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  IMAGE_BACKEND: chess-bot-backend
-  IMAGE_FRONTEND: chess-bot-frontend
-  GCP_HOST: ${{ secrets.GCP_HOST }}
-  GCP_USERNAME: ${{ secrets.GCP_USERNAME }}
-
 jobs:
-  build-and-push:
-    name: Build and Push Docker Images
+  # ─────────────────────────────────────────────────────────
+  # CI: Test, Lint and Type Check Backend and Frontend
+  # ─────────────────────────────────────────────────────────
+  ci:
+    name: Continuous Integration (CI)
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # --- Backend CI ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'Backend/requirements.txt'
+
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Backend/requirements.txt
+
+      - name: Run Backend Unit Tests
+        run: |
+          python -m unittest discover -s Backend/tests
+
+      # --- Frontend CI ---
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'Frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./Frontend
+        run: npm ci
+
+      - name: Run Frontend Linter
+        working-directory: ./Frontend
+        run: npm run lint
+
+      - name: Run Frontend Type Check
+        working-directory: ./Frontend
+        run: npx tsc --noEmit
+
+      - name: Run Frontend Build Test
+        working-directory: ./Frontend
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────
+  # CD: Build and Push Multi-arch Docker Images to GHCR
+  # ─────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build and Push to GHCR
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Downcase repository name for GHCR compatibility
+        run: |
+          echo "IMAGE_REPOSITORY_LC=${REPOSITORY,,}" >> $GITHUB_ENV
+        env:
+          REPOSITORY: 'ghcr.io/${{ github.repository }}'
+
+      - name: Set up QEMU (for multi-platform emulation)
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels)
         id: meta
@@ -44,12 +103,13 @@ jobs:
           context: ./Backend
           file: ./Backend/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_BACKEND }}:latest
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_BACKEND }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_BACKEND }}:${{ steps.meta.outputs.date }}
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_BACKEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_BACKEND }}:buildcache,mode=max
+            ${{ env.IMAGE_REPOSITORY_LC }}/backend:latest
+            ${{ env.IMAGE_REPOSITORY_LC }}/backend:${{ steps.meta.outputs.sha_short }}
+            ${{ env.IMAGE_REPOSITORY_LC }}/backend:${{ steps.meta.outputs.date }}
+          cache-from: type=registry,ref=${{ env.IMAGE_REPOSITORY_LC }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPOSITORY_LC }}/backend:buildcache,mode=max
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5
@@ -57,70 +117,10 @@ jobs:
           context: ./Frontend
           file: ./Frontend/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_FRONTEND }}:latest
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_FRONTEND }}:${{ steps.meta.outputs.sha_short }}
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_FRONTEND }}:${{ steps.meta.outputs.date }}
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_FRONTEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_FRONTEND }}:buildcache,mode=max
-
-  deploy-to-gcp:
-    name: Deploy to Google Cloud Platform
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.GCP_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Create directories on GCP
-        run: |
-          ssh ${{ env.GCP_USERNAME }}@${{ env.GCP_HOST }} << 'ENDSSH'
-            mkdir -p ~/chess-bot/scripts
-            mkdir -p ~/chess-bot/nginx
-          ENDSSH
-
-      - name: Copy deployment files to GCP
-        run: |
-          scp docker-compose.prod.yml ${{ env.GCP_USERNAME }}@${{ env.GCP_HOST }}:~/chess-bot/
-          scp scripts/deploy.sh ${{ env.GCP_USERNAME }}@${{ env.GCP_HOST }}:~/chess-bot/scripts/
-          # Note: Nginx config already managed by install.sh, no need to copy on every deploy
-
-      - name: Deploy on GCP via SSH
-        run: |
-          ssh ${{ env.GCP_USERNAME }}@${{ env.GCP_HOST }} << 'ENDSSH'
-            cd ~/chess-bot
-            
-            # Export environment variables
-            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            export IMAGE_BACKEND=${{ env.IMAGE_BACKEND }}
-            export IMAGE_FRONTEND=${{ env.IMAGE_FRONTEND }}
-            
-            # Make deploy script executable
-            chmod +x scripts/deploy.sh
-            
-            # Run deployment script
-            ./scripts/deploy.sh
-          ENDSSH
-
-      - name: Health check
-        run: |
-          sleep 30
-          curl -f http://${{ secrets.GCP_HOST }}/health || exit 1
-
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed!"
-            exit 1
-          fi
+            ${{ env.IMAGE_REPOSITORY_LC }}/frontend:latest
+            ${{ env.IMAGE_REPOSITORY_LC }}/frontend:${{ steps.meta.outputs.sha_short }}
+            ${{ env.IMAGE_REPOSITORY_LC }}/frontend:${{ steps.meta.outputs.date }}
+          cache-from: type=registry,ref=${{ env.IMAGE_REPOSITORY_LC }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_REPOSITORY_LC }}/frontend:buildcache,mode=max
