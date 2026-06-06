@@ -4,7 +4,7 @@
   <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/fastapi/fastapi-original.svg" height="35" title="FastAPI" />
   <img src="https://cdn.simpleicons.org/neon/00E599" height="35" title="Neon Database" />
   <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/cloudflare/cloudflare-original.svg" height="35" title="Cloudflare" />
-  <img src="https://cdn.simpleicons.org/traefik/24A1C1" height="35" title="Traefik" />
+  <img src="https://cdn.simpleicons.org/traefikproxy/24A1C1" height="35" title="Traefik" />
   <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/amazonwebservices/amazonwebservices-original-wordmark.svg" height="35" title="AWS" />
 </p>
 
