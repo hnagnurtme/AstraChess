@@ -1,247 +1,194 @@
-# AstraChess API
+<p align="center" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px;">
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg" height="35" title="React" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg" height="35" title="TypeScript" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/fastapi/fastapi-original.svg" height="35" title="FastAPI" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" height="35" title="Python" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg" height="35" title="PostgreSQL" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original.svg" height="35" title="Docker" />
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/github/github-original.svg" height="35" title="GitHub Actions" />
+</p>
 
-An advanced chess engine application with three different AI difficulty levels, a React + TypeScript frontend interface, and premium neo-brutalist styling.
+# AstraChess
 
-## Project Structure
+A **premium, high-performance Chess application** allowing players to play against three levels of custom-built AI chess engines. It features an aesthetic **neo-brutalism design** frontend built using React and TypeScript, and an asynchronous, lightweight FastAPI backend.
 
-- **Backend**: FastAPI-based REST API with three chess engines
-- **Frontend**: React + Vite with chess.js and react-chessboard
+---
 
-## Features
+## 🏛️ System Architecture
 
-### Chess Engines
+### Move Calculation Sequence Flow
+```mermaid
+%%{init: {
+  'theme': 'neutral',
+  'themeVariables': {
+    'fontFamily': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif',
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f4f4f5',
+    'tertiaryColor': '#ffffff'
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor User as Client / Frontend
+    participant API as FastAPI Backend
+    participant Router as API Router
+    participant Engine as Chess Engine (V1/V2/VIP)
 
-1. **Bot V1**: Simple alpha-beta pruning engine
-2. **Bot V2**: Enhanced with iterative deepening, transposition tables, and late move reduction
-3. **Bot VIP**: Advanced engine with static exchange evaluation, aspiration windows, and pawn hash tables
+    User->>API: Post FEN & Engine parameters (JSON)
+    API->>Router: Parse and Validate request
+    critical Move Search
+        Router->>Engine: get_best_move(board, depth, time_limit)
+        Engine->>Engine: Search game tree (Alpha-Beta / Iterative Deepening)
+        Engine->>Engine: Evaluate positions & Order moves
+    end
+    Engine-->>Router: Return best Move (chess.Move)
+    Router-->>API: Format MoveResponse (UCI + Stats)
+    API-->>User: HTTP 200 OK (Success response with best move)
+```
 
-## Quick Start with Docker
+---
 
-### Local Development
+## 🖥️ Screen Previews
 
+### 1. Match Playroom
+<p align="center">
+  <img src="docs/playroom.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AstraChess Playroom"/>
+  <br/>
+  <em>Interactive gameplay room against AI with move history and dynamic stats.</em>
+</p>
+
+### 2. Homepage & Difficulty Selection
+<p align="center">
+  <img src="docs/homepage.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AstraChess Homepage"/>
+  <br/>
+  <em>Aesthetic neo-brutalist landing page with quick match settings.</em>
+</p>
+
+### 3. AI Engine Levels
+<p align="center">
+  <img src="docs/3engine.png" width="90%" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="AI Engines"/>
+  <br/>
+  <em>Three custom AI engine difficulty levels: V1 (Alpha-Beta), V2 (ID + TT), and VIP (Advanced).</em>
+</p>
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technical Selection | Purpose |
+| :--- | :--- | :--- |
+| **User Interface** | React 19 + TypeScript + Vite | Aesthetic dashboard, responsive styling, interactive chessboard. |
+| **Chess rendering** | react-chessboard & chess.js | Move validation and graphic render pipeline. |
+| **Gateway & Router** | Traefik (Production only) | Edge proxy routing secure HTTPS requests to Docker containers. |
+| **API Web Server** | FastAPI (Python 3.11) | High-performance asynchronous REST endpoints. |
+| **Chess Engines** | python-chess | Game state management and move generation. |
+| **Database** | PostgreSQL (Neon DB) | Persistent storage for users, matches, and leaderboard. |
+| **Containerization** | Docker & Docker Compose | Multi-stage slim container builds for production and development. |
+
+---
+
+## 📁 Repository Layout
+
+```text
+├── Backend/                 # FastAPI server codebase
+│   ├── api/                 # FastAPI routes and endpoints
+│   ├── core/                # App configuration, database sessions & models
+│   ├── engines/             # Chess AI engines (BotV1, BotV2, BotVIP)
+│   ├── models/              # Pydantic schemas for request/response
+│   └── tests/               # Python unit testing suite
+├── Frontend/                # React interface built using TypeScript
+│   ├── public/              # Static assets (logo, preview)
+│   ├── src/                 # React components, pages, hooks, state
+│   └── index.html           # HTML entry point with SEO configuration
+├── docker-compose.yml       # Local development multi-container setup
+├── docker-compose.prod.yml  # Production container setup with Traefik
+└── docs/                    # Interface screenshots and documentation assets
+```
+
+---
+
+## ⚡ Quick Start Guide
+
+### 1. Clone & Set Up Directory
 ```bash
-docker-compose up -d
+git clone https://github.com/hnagnurtme/ChessAI.git
+cd ChessAI
 ```
 
-Services will be available at:
-- Backend API: http://localhost:8000/docs
-- Frontend: http://localhost:5000
+### 2. Configure Environment Variables
+Create a `.env` configuration file in the project root:
+```env
+# Database connection URL
+DATABASE_URL=postgresql://username:password@host:port/database_name?sslmode=require
 
-### Production Deployment
+# App settings
+APP_NAME=chess-backend
+APP_DOMAIN=api.astrachess.com
 
-1. **Create production environment file**:
+# Docker image configuration (optional)
+DOCKERHUB_USERNAME=trunganh0106
+IMAGE_BACKEND=chess-bot-backend
+```
+
+### 3. Run Locally with Docker Compose (Recommended)
+This starts the backend container pulling from Docker Hub and exposes port `9999`:
 ```bash
-cp .env.prod.example .env.prod
+docker compose up -d
 ```
+Once healthy, navigate to:
+* **Frontend UI:** `http://localhost:5173`
+* **API Service:** `http://localhost:9999/health`
 
-2. **Configure environment variables** in `.env.prod`:
-```bash
-# Docker Hub credentials
-DOCKERHUB_USERNAME=your_dockerhub_username
+---
 
-# Frontend API URL - IMPORTANT!
-# Use relative path /api for nginx reverse proxy setup
-VITE_API_URL=/api
+## ⚙️ Manual Development Setup
 
-# Or use full URL if not using reverse proxy:
-# VITE_API_URL=https://your-domain.com/api
-```
+If you prefer to run the applications locally without Docker:
 
-3. **Build images with production config**:
-```bash
-# Use the build script (recommended)
-./scripts/build-prod.sh
-
-# Or manually with docker-compose
-docker-compose -f docker-compose.prod.yml build
-
-# Or build directly with docker
-docker build --build-arg VITE_API_URL=/api -t username/chess-bot-frontend:latest ./Frontend
-```
-
-4. **Deploy**:
-./scripts/deploy.sh
-```
-
-> **Note**: `VITE_API_URL` is a build-time variable for Vite. If you change it, you must rebuild the frontend image.
-
-### Stop Services
-
-```bash
-docker-compose down
-```
-
-### View Logs
-
-```bash
-docker-compose logs -f
-```
-
-## Manual Setup
-
-### Backend
-
-1. Navigate to Backend folder:
+### Backend Development
 ```bash
 cd Backend
-```
-
-2. Install dependencies:
-```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python run.py
 ```
 
-3. Run the server:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-API documentation: http://localhost:8000/docs
-
-### Frontend
-
-1. Navigate to Frontend folder:
+### Frontend Development
 ```bash
 cd Frontend
-```
-
-2. **Setup environment variables**:
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to configure API URL:
-```
-VITE_API_URL=http://localhost:8000
-```
-
-3. Install dependencies:
-```bash
-5pm install
-```
-
-4. Run development server:
-```bash
+npm install
 npm run dev
 ```
 
-Application: http://localhost:5173
+---
 
-4. Build for production:
-```bash
-npm run build
-```
+## 🧪 Testing and Formatting
 
-## API Endpoints
+Ensure all tests pass before making pull requests:
 
-### Get Best Move
-
-```
-POST /api/v1/best-move
-POST /api/v2/best-move
-POST /api/vip/best-move
-```
-
-Request body:
-```json
-{
-  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  "depth": 4
-}
-```
-
-Response:
-```json
-{
-  "move": "e2e4",
-  "eval": 0.5
-}
-```
-
-## Development
-
-### Run Tests
-
-Backend:
+### Backend Tests
 ```bash
 cd Backend
-pytest
+python -m unittest discover -s tests
 ```
 
-Frontend:
+### Frontend Code Quality
 ```bash
 cd Frontend
 npm run lint
+npx tsc --noEmit
 ```
 
-## Technology Stack
+---
 
-### Backend
-- FastAPI
-- python-chess
-- uvicorn
-- numpy
-- pydantic-settings
+## 🛡️ Security, Licensing, and Contribution
 
-### Frontend
-- React 19
-- Vite
-- chess.js
-- react-chessboard
-- axios
+This project follows professional open-source standards:
 
-## Docker Images
-
-- Backend: Python 3.11-slim based (approximately 150-200MB)
-- Frontend: Multi-stage Nginx Alpine based (approximately 25-35MB)
-
-## 🚀 CI/CD Deployment
-
-This project includes automated CI/CD pipeline for deploying to Google Cloud Platform.
-
-### Quick Setup
-
-1. **Docker Hub**: Create account and access token
-2. **GCP VM**: Setup Ubuntu VM with Docker installed
-3. **GitHub Secrets**: Configure deployment secrets
-4. **Nginx**: Setup reverse proxy on GCP
-5. **Deploy**: Push to GitHub → Auto deploy!
-
-### Documentation
-
-- **[CI/CD Quick Start](./CI-CD-SETUP.md)** - 10-step setup guide
-- **[Complete Deployment Guide](./DEPLOY.md)** - Detailed documentation with monitoring and troubleshooting
-
-### GitHub Actions Workflow
-
-Pipeline automatically:
-1. ✅ Builds Docker images
-2. ✅ Pushes to Docker Hub with version tags
-3. ✅ Deploys to GCP via SSH
-4. ✅ Runs health checks
-
-Triggers on:
-- Push to `main` or `prod` branch
-- Manual workflow dispatch
-
-### Required GitHub Secrets
-
-| Secret | Description |
-|--------|-------------|
-| `DOCKERHUB_USERNAME` | Docker Hub username |
-| `DOCKERHUB_TOKEN` | Docker Hub access token |
-| `GCP_HOST` | GCP VM public IP |
-| `GCP_USERNAME` | SSH username |
-| `GCP_SSH_KEY` | SSH private key |
-
-### Production URLs
-
-After deployment, access your application:
-- Frontend: `http://YOUR_GCP_IP/`
-- API Docs: `http://YOUR_GCP_IP/docs`
-- API Endpoint: `http://YOUR_GCP_IP/api/`
-
-## License
-
-[Add your license here]
-
+- **[MIT License](./LICENSE)** — Copyright (c) 2026 hnagnurtme.
+- **[Contributing Guidelines](./CONTRIBUTING.md)** — Steps to report bugs, suggest features, and create pull requests.
+- **[Security Policy](./SECURITY.md)** — Guide on reporting vulnerabilities and supported versions.
